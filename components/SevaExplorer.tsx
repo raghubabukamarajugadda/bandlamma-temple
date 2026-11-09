@@ -12,6 +12,7 @@ const FILTERS = [
   { key: "homam", label: "Homams" },
   { key: "special", label: "Special Sevas" },
   { key: "prasadam", label: "Postal Prasadam" },
+  { key: "stay", label: "Stay & Hall" },
 ] as const;
 
 const TAG: Record<Seva["category"], string> = {
@@ -20,7 +21,11 @@ const TAG: Record<Seva["category"], string> = {
   homam: "Homam",
   special: "Special",
   prasadam: "By Post",
+  stay: "Accommodation",
 };
+
+const unitLabel = (s: Seva) =>
+  s.unit ?? (s.category === "darshan" ? "per person" : s.category === "prasadam" ? "per pack" : "per seva");
 
 export default function SevaExplorer() {
   const [f, setF] = useState<(typeof FILTERS)[number]["key"]>("all");
@@ -48,6 +53,11 @@ export default function SevaExplorer() {
             <div className="seva-card__img">
               <img src={s.image} alt={s.name} loading="lazy" />
               <span className="tag">{TAG[s.category]}</span>
+              {s.category === "prasadam" && (
+                <span className="post-badge" title="Sent via India Post">
+                  <img src="/images/india-post.webp" alt="India Post" />
+                </span>
+              )}
             </div>
             <div className="seva-card__body">
               <h3>{s.name}</h3>
@@ -56,8 +66,10 @@ export default function SevaExplorer() {
               <span className="when">◷ {s.when}</span>
               <div className="seva-card__foot">
                 <span className="price">
-                  {s.price === 0 ? "Free" : `₹${s.price.toLocaleString("en-IN")}`}
-                  <small>{s.category === "darshan" ? "per person" : s.category === "prasadam" ? "per pack" : "per seva"}</small>
+                  {s.variants
+                    ? `₹${Math.min(...s.variants.map((v) => v.price)).toLocaleString("en-IN")} onwards`
+                    : s.price === 0 ? "Free" : `₹${s.price.toLocaleString("en-IN")}`}
+                  <small>{s.variants ? "per vehicle" : unitLabel(s)}</small>
                 </span>
                 <Link href={`/booking?seva=${s.id}`} className="btn btn--sm">
                   {s.price === 0 ? "Get Ticket" : "Book"}

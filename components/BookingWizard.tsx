@@ -25,6 +25,8 @@ type Booking = {
   packs?: number;
   postage?: number;
   address?: string;
+  variant?: string;
+  nights?: number;
 };
 
 const LS_KEY = "bmd_bookings";
@@ -62,6 +64,8 @@ export default function BookingWizard() {
   const [email, setEmail] = useState("");
   const [payMethod, setPayMethod] = useState("UPI");
   const [packs, setPacks] = useState(1);
+  const [variantIdx, setVariantIdx] = useState(0);
+  const [nights, setNights] = useState(1);
   const [addr, setAddr] = useState("");
   const [addr2, setAddr2] = useState("");
   const [village, setVillage] = useState("");
@@ -89,13 +93,16 @@ export default function BookingWizard() {
   }, []);
 
   const isPrasadam = kind === "seva" && seva?.category === "prasadam";
+  const isStay = kind === "seva" && seva?.category === "stay";
+  const unitPrice = seva?.variants ? seva.variants[variantIdx]?.price ?? seva.price : seva?.price ?? 0;
   const fullAddr = isPrasadam
     ? [addr.trim(), addr2.trim(), village.trim(), district.trim(), stateName.trim(), pin.trim()].filter(Boolean).join(", ")
     : "";
   const total = kind === "seva"
     ? (isPrasadam
-      ? (seva?.price ?? 0) * packs + PRASADAM_POSTAGE
-      : seva?.category === "darshan" ? (seva?.price ?? 0) * persons : seva?.price ?? 0)
+      ? unitPrice * packs + PRASADAM_POSTAGE
+      : isStay ? unitPrice * persons * nights
+      : seva?.category === "darshan" ? unitPrice * persons : unitPrice)
     : amount;
 
   const save = (b: Booking) => {
@@ -136,13 +143,15 @@ export default function BookingWizard() {
         itemName: kind === "seva" ? seva!.name : cause!.name,
         itemNameTe: kind === "seva" ? seva!.nameTe : cause!.nameTe,
         date: kind === "seva" ? (isPrasadam ? "Dispatch in 3–5 days" : date) : todayStr(),
-        slot: kind === "seva" ? (isPrasadam ? "By post" : slot) : "—",
+        slot: kind === "seva" ? (isPrasadam ? "By post" : isStay ? (seva?.id === "kalyana-mandapam" ? "Full day" : "Check-in 12 noon") : slot) : "—",
         persons: isPrasadam ? packs : persons,
         devotee: devotee.trim(),
         gotram, nakshatra, rasi, phone,
         email,
         amount: total,
         ...(isPrasadam ? { packs, postage: PRASADAM_POSTAGE, address: fullAddr } : {}),
+        ...(seva?.variants ? { variant: seva.variants[variantIdx]?.label } : {}),
+        ...(isStay ? { nights } : {}),
         payMethod: total === 0 ? "Free" : `${payMethod} (demo)`,
         createdAt: new Date().toLocaleString("en-IN"),
       };
@@ -201,7 +210,7 @@ export default function BookingWizard() {
                 {kind === "seva" ? (
                   <div className="pick-grid">
                     {SEVAS.map((s) => (
-                      <button key={s.id} className={`pick ${seva?.id === s.id ? "on" : ""}`} onClick={() => setSeva(s)}>
+                      <button key={s.id} className={`pick ${seva?.id === s.id ? "on" : ""}`} onClick={() => { setSeva(s); setVariantIdx(0); }}>
                         <img src={s.image} alt="" loading="lazy" />
                         <span>
                           <b>{s.name}</b>
@@ -254,21 +263,34 @@ export default function BookingWizard() {
             {step === 1 && (
               <>
                 <div className="form-grid">
-                  {kind === "seva" && !isPrasadam && (
+                  {kind === "seva" && !isPrasadam && !isStay && (
                     <>
                       <div className="field">
                         <label>Seva date <span className="req">*</span></label>
                         <input type="date" min={todayStr()} value={date} className={errs.date ? "invalid" : ""} onChange={(e) => setDate(e.target.value)} />
                         {errs.date && <span className="err">{errs.date}</span>}
                       </div>
-                      <div className="field">
-                        <label>Preferred time slot</label>
-                        <div className="slot-row">
-                          {SLOTS.map((s) => (
-                            <button key={s} type="button" className={`slot ${slot === s ? "on" : ""}`} onClick={() => setSlot(s)}>{s}</button>
-                          ))}
+                      {seva?.variants ? (
+                        <div className="field">
+                          <label>Vehicle type <span className="req">*</span></label>
+                          <div className="pill-row">
+                            {seva.variants.map((v, i) => (
+                              <button key={v.key} type="button" className={`chip ${variantIdx === i ? "on" : ""}`} onClick={() => setVariantIdx(i)}>
+                                {v.label} · {inr(v.price)}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="field">
+                          <label>Preferred time slot</label>
+                          <div className="slot-row">
+                            {SLOTS.map((s) => (
+                              <button key={s} type="button" className={`slot ${slot === s ? "on" : ""}`} onClick={() => setSlot(s)}>{s}</button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div className="field">
                         <label>{seva?.category === "darshan" ? "Number of persons" : "Family members attending"}</label>
                         <div className="qty">
@@ -277,6 +299,34 @@ export default function BookingWizard() {
                           <button type="button" onClick={() => setPersons((p) => Math.min(20, p + 1))} aria-label="increase">+</button>
                         </div>
                       </div>
+                    </>
+                  )}
+
+                  {isStay && (
+                    <>
+                      <div className="field">
+                        <label>{seva?.id === "kalyana-mandapam" ? "Function date" : "Check-in date"} <span className="req">*</span></label>
+                        <input type="date" min={todayStr()} value={date} className={errs.date ? "invalid" : ""} onChange={(e) => setDate(e.target.value)} />
+                        {errs.date && <span className="err">{errs.date}</span>}
+                      </div>
+                      <div className="field">
+                        <label>{seva?.id === "kalyana-mandapam" ? "Number of days" : "Rooms"}</label>
+                        <div className="qty">
+                          <button type="button" onClick={() => setPersons((p) => Math.max(1, p - 1))} aria-label="decrease">−</button>
+                          <b>{persons}</b>
+                          <button type="button" onClick={() => setPersons((p) => Math.min(10, p + 1))} aria-label="increase">+</button>
+                        </div>
+                      </div>
+                      {seva?.id !== "kalyana-mandapam" && (
+                        <div className="field">
+                          <label>Nights</label>
+                          <div className="qty">
+                            <button type="button" onClick={() => setNights((n) => Math.max(1, n - 1))} aria-label="decrease">−</button>
+                            <b>{nights}</b>
+                            <button type="button" onClick={() => setNights((n) => Math.min(30, n + 1))} aria-label="increase">+</button>
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -384,10 +434,12 @@ export default function BookingWizard() {
                   <table>
                     <tbody>
                       <tr><td>{kind === "seva" ? (isPrasadam ? "Prasadam" : "Seva") : "Donation"}</td><td>{kind === "seva" ? seva!.name : cause!.name} <span className="telugu" style={{ fontWeight: 400, color: "var(--ink-soft)" }}>({kind === "seva" ? seva!.nameTe : cause!.nameTe})</span></td></tr>
-                      {kind === "seva" && !isPrasadam && <tr><td>Date & slot</td><td>{date || "—"} · {slot}</td></tr>}
+                      {kind === "seva" && !isPrasadam && <tr><td>{isStay ? (seva?.id === "kalyana-mandapam" ? "Function date" : "Check-in") : "Date & slot"}</td><td>{date || "—"}{isStay ? ` · ${seva?.id === "kalyana-mandapam" ? "Full day" : "12 noon"}` : ` · ${slot}`}</td></tr>}
+                      {seva?.variants && <tr><td>Vehicle type</td><td>{seva.variants[variantIdx]?.label} · {inr(unitPrice)}</td></tr>}
                       {isPrasadam && <tr><td>Packs</td><td>{packs} × {inr(seva!.price)}</td></tr>}
                       <tr><td>{isPrasadam ? "Recipient" : "Devotee (sankalpam)"}</td><td>{devotee}{gotram ? ` · ${gotram} gotram` : ""}{nakshatra ? ` · ${nakshatra}` : ""}</td></tr>
-                      {kind === "seva" && !isPrasadam && <tr><td>Persons</td><td>{persons}</td></tr>}
+                      {kind === "seva" && !isPrasadam && !isStay && <tr><td>Persons</td><td>{persons}</td></tr>}
+                      {isStay && <tr><td>{seva?.id === "kalyana-mandapam" ? "Days" : "Rooms · nights"}</td><td>{seva?.id === "kalyana-mandapam" ? persons : `${persons} × ${nights}`}</td></tr>}
                       {isPrasadam && <tr><td>Deliver to</td><td>{fullAddr}</td></tr>}
                       <tr><td>Contact</td><td>{phone}{email ? ` · ${email}` : ""}</td></tr>
                       {isPrasadam && <tr><td>Packing & postage</td><td>{inr(PRASADAM_POSTAGE)}</td></tr>}
@@ -459,11 +511,12 @@ function TicketView({ b, onNew }: { b: Booking; onNew?: () => void }) {
           <table>
             <tbody>
               <tr><td>Booking ID</td><td><span className="booking-id">{b.id}</span></td></tr>
-              <tr><td>{b.kind === "seva" ? "Seva" : "Towards"}</td><td>{b.itemName}</td></tr>
+              <tr><td>{b.kind === "seva" ? "Seva" : "Towards"}</td><td>{b.itemName}{b.variant ? ` — ${b.variant}` : ""}</td></tr>
               {b.kind === "seva" && !b.address && <tr><td>Date · Slot</td><td>{b.date} · {b.slot}</td></tr>}
               {b.packs && <tr><td>Packs</td><td>{b.packs}</td></tr>}
               <tr><td>{b.address ? "Recipient" : "Devotee"}</td><td>{b.devotee}{b.gotram ? ` · ${b.gotram}` : ""}</td></tr>
-              {b.kind === "seva" && !b.address && <tr><td>Persons</td><td>{b.persons}</td></tr>}
+              {b.kind === "seva" && !b.address && !b.nights && <tr><td>Persons</td><td>{b.persons}</td></tr>}
+              {b.nights && <tr><td>Rooms · nights</td><td>{b.persons} × {b.nights}</td></tr>}
               {b.address && <tr><td>Deliver to</td><td>{b.address}</td></tr>}
               {b.postage != null && <tr><td>Packing & postage</td><td>{inr(b.postage)}</td></tr>}
               <tr><td>Amount</td><td>{b.amount === 0 ? "Free" : inr(b.amount)}</td></tr>

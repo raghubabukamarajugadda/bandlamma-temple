@@ -22,15 +22,19 @@ export const DARSHAN_TIMINGS = {
   note: "Timings may extend on Amavasya, Fridays, Jayanthi & Navaratri days.",
 };
 
+export type SevaVariant = { key: string; label: string; labelTe: string; price: number };
+
 export type Seva = {
   id: string;
   name: string;
   nameTe: string;
   price: number;
-  category: "nitya" | "homam" | "special" | "darshan" | "prasadam";
+  category: "nitya" | "homam" | "special" | "darshan" | "prasadam" | "stay";
   image: string;
   desc: string;
   when: string;
+  unit?: string;
+  variants?: SevaVariant[];
 };
 
 export const SEVAS: Seva[] = [
@@ -148,7 +152,7 @@ export const SEVAS: Seva[] = [
     id: "laddu-prasadam",
     name: "Laddu Prasadam",
     nameTe: "లడ్డు ప్రసాదం",
-    price: 151,
+    price: 500,
     category: "prasadam",
     image: "/images/laddu.webp",
     desc: "Ammavari boondi laddu prasadam prepared fresh in the devastanam kitchen — packed and sent to your home by post.",
@@ -158,11 +162,48 @@ export const SEVAS: Seva[] = [
     id: "pulihora-prasadam",
     name: "Pulihora Prasadam",
     nameTe: "పులిహోర ప్రసాదం",
-    price: 101,
+    price: 250,
     category: "prasadam",
     image: "/images/pulihora.webp",
     desc: "Temple-made pulihora prasadam offered to Bandlamma Thalli — hygienically sealed and couriered to your doorstep.",
     when: "~500 g pack · dispatched by post",
+  },
+  {
+    id: "vahana-pooja",
+    name: "Vahana Pooja",
+    nameTe: "వాహన పూజ",
+    price: 251,
+    category: "special",
+    image: "/images/vahana-pooja.webp",
+    desc: "Get your vehicle blessed before Ammavaru — archaka performs the pooja with garlands, kumkum and akshintalu for the vehicle's protection.",
+    when: "Daily · 8:00 AM – 12:00 PM",
+    unit: "per vehicle",
+    variants: [
+      { key: "2w", label: "Two-wheeler", labelTe: "ద్విచక్ర వాహనం", price: 251 },
+      { key: "4w", label: "Four-wheeler", labelTe: "నాలుగు చక్రాల వాహనం", price: 501 },
+    ],
+  },
+  {
+    id: "devotee-rooms",
+    name: "Devotee Accommodation",
+    nameTe: "భక్తుల వసతి గదులు",
+    price: 351,
+    category: "stay",
+    image: "/images/accommodation.webp",
+    desc: "Simple, clean devotee rooms in the devastanam satram — stay overnight for early-morning darshan and Amavasya homams.",
+    when: "Check-in 12 noon · check-out 11 AM",
+    unit: "per room · night",
+  },
+  {
+    id: "kalyana-mandapam",
+    name: "Kalyana Mandapam (Hall)",
+    nameTe: "కళ్యాణ మండపం",
+    price: 5001,
+    category: "stay",
+    image: "/images/festival-utsavam.webp",
+    desc: "Book the devastanam hall for weddings, upanayanam, seemantham and family functions under Ammavaru's blessings.",
+    when: "Full day · advance booking",
+    unit: "per day",
   },
 ];
 
