@@ -60,9 +60,9 @@ button { font: inherit; cursor: pointer; }
 ::selection { background: var(--gold-3); color: var(--maroon-900); }
 
 /* flame scrollbar — gold tip to ember red */
-html { scrollbar-width: thin; scrollbar-color: #d2491e var(--cream); }
+html { scrollbar-width: thin; scrollbar-color: #d2491e transparent; }
 ::-webkit-scrollbar { width: 10px; }
-::-webkit-scrollbar-track { background: var(--cream); }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #f7c04a 0%, #e8761f 45%, var(--maroon-800) 100%);
   border-radius: 8px;
