@@ -570,6 +570,21 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.08;
 .chip:hover { background: rgba(118,26,33,.08); }
 .chip.on { background: var(--maroon-800); color: var(--gold-3); border-color: var(--maroon-800); }
 
+/* mobile: chips become a swipeable strip */
+@media (max-width: 760px) {
+  .chips {
+    flex-wrap: nowrap; justify-content: flex-start;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-left: -1.2rem; margin-right: -1.2rem;
+    padding: .2rem 1.2rem .5rem;
+  }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips .chip { flex: 0 0 auto; scroll-snap-align: start; white-space: nowrap; }
+}
+
 /* ── stats / belief strip ──────────────────────────────────────── */
 .belief {
   background: linear-gradient(160deg, var(--maroon-900), var(--maroon-800) 60%, var(--maroon-950));
