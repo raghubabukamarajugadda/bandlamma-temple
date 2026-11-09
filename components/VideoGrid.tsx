@@ -76,8 +76,9 @@ export default function VideoGrid() {
       </div>
 
       <div className="text-center mt-4">
-        <a className="btn" href={TEMPLE.youtube} target="_blank" rel="noreferrer">
-          Visit the official channel · @bagalamukhitemplechandole416
+        <a className="btn btn--wrap" href={TEMPLE.youtube} target="_blank" rel="noreferrer">
+          Visit official channel
+          <span style={{ fontWeight: 500, opacity: .8 }}>@bagalamukhitemplechandole416</span>
         </a>
       </div>
 

@@ -41,7 +41,7 @@
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-html, body { margin: 0; padding: 0; }
+html, body { margin: 0; padding: 0; overflow-x: clip; }
 
 body {
   font-family: var(--f-body);
@@ -189,6 +189,7 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.08;
   box-shadow: inset 0 0 0 1.5px var(--maroon-700);
 }
 .btn--line:hover { background: rgba(118,26,33,.08); }
+.btn--wrap { white-space: normal; text-align: center; flex-wrap: wrap; row-gap: .15rem; }
 .btn--sm { padding: 0.55rem 1.15rem; font-size: 0.88rem; }
 .btn[disabled] { opacity: .55; pointer-events: none; }
 
@@ -276,9 +277,10 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.08;
   background: linear-gradient(160deg, var(--maroon-950), var(--maroon-800));
   padding: 7.5rem 2rem 2rem;
   display: flex; flex-direction: column; gap: 0.4rem;
-  transform: translateX(100%); transition: transform .45s var(--ease-out);
+  transform: translateX(100%); visibility: hidden;
+  transition: transform .45s var(--ease-out), visibility 0s .45s;
 }
-.drawer.open { transform: none; }
+.drawer.open { transform: none; visibility: visible; transition-delay: 0s; }
 .drawer a:not(.btn) {
   color: var(--cream); font-family: var(--f-display); font-size: 1.6rem; font-weight: 600;
   padding: 0.55rem 0; border-bottom: 1px solid rgba(227,171,41,.18);
@@ -901,7 +903,7 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 700; line-height: 1.08;
 }
 .notice b { color: var(--maroon-800); }
 .pill-row { display: flex; gap: .6rem; flex-wrap: wrap; }
-.tagline { display: inline-flex; align-items: center; gap: .4rem; background: rgba(179,39,30,.08); color: var(--kumkum); font-weight: 700; font-size: .8rem; border-radius: 999px; padding: .3rem .8rem; }
+.tagline { display: inline-block; white-space: normal; max-width: 100%; background: rgba(179,39,30,.08); color: var(--kumkum); font-weight: 700; font-size: .8rem; border-radius: 999px; padding: .3rem .8rem; line-height: 1.5; }
 .text-center { text-align: center; }
 .mt-1 { margin-top: .6rem; } .mt-2 { margin-top: 1.2rem; } .mt-3 { margin-top: 2rem; } .mt-4 { margin-top: 3rem; }
 .muted { color: var(--ink-soft); }
