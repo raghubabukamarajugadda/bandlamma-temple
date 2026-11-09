@@ -33,7 +33,16 @@ export default function SparkleLayer() {
       );
     });
     mo.observe(document.body, { childList: true, subtree: true });
-    return () => mo.disconnect();
+
+    const onScroll = () =>
+      document.documentElement.classList.toggle("scrolled", window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      mo.disconnect();
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   return null;
