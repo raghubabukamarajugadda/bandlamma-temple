@@ -27,7 +27,7 @@ export type Seva = {
   name: string;
   nameTe: string;
   price: number;
-  category: "nitya" | "homam" | "special" | "darshan";
+  category: "nitya" | "homam" | "special" | "darshan" | "prasadam";
   image: string;
   desc: string;
   when: string;
@@ -144,7 +144,30 @@ export const SEVAS: Seva[] = [
     desc: "Grand one-lakh-count kumkumarchana conducted over a day with multiple archakas — a once-in-a-lifetime offering.",
     when: "By prior arrangement",
   },
+  {
+    id: "laddu-prasadam",
+    name: "Laddu Prasadam",
+    nameTe: "లడ్డు ప్రసాదం",
+    price: 151,
+    category: "prasadam",
+    image: "/images/laddu.webp",
+    desc: "Ammavari boondi laddu prasadam prepared fresh in the devastanam kitchen — packed and sent to your home by post.",
+    when: "Pack of 5 laddus · dispatched by post",
+  },
+  {
+    id: "pulihora-prasadam",
+    name: "Pulihora Prasadam",
+    nameTe: "పులిహోర ప్రసాదం",
+    price: 101,
+    category: "prasadam",
+    image: "/images/pulihora.webp",
+    desc: "Temple-made pulihora prasadam offered to Bandlamma Thalli — hygienically sealed and couriered to your doorstep.",
+    when: "~500 g pack · dispatched by post",
+  },
 ];
+
+/* per-order packing & postage for postal prasadam (India Post / courier) */
+export const PRASADAM_POSTAGE = 80;
 
 export type Festival = {
   name: string;

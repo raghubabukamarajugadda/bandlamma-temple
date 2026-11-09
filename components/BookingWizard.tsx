@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SEVAS, DONATION_CAUSES, GOTRAS, NAKSHATRAS, RASIS, type Seva } from "@/lib/data";
+import { SEVAS, DONATION_CAUSES, GOTRAS, NAKSHATRAS, RASIS, PRASADAM_POSTAGE, type Seva } from "@/lib/data";
 
 /* ── types ── */
 type Booking = {
@@ -22,6 +22,9 @@ type Booking = {
   amount: number;
   payMethod: string;
   createdAt: string;
+  packs?: number;
+  postage?: number;
+  address?: string;
 };
 
 const LS_KEY = "bmd_bookings";
@@ -58,6 +61,13 @@ export default function BookingWizard() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [payMethod, setPayMethod] = useState("UPI");
+  const [packs, setPacks] = useState(1);
+  const [addr, setAddr] = useState("");
+  const [addr2, setAddr2] = useState("");
+  const [village, setVillage] = useState("");
+  const [district, setDistrict] = useState("");
+  const [stateName, setStateName] = useState("Andhra Pradesh");
+  const [pin, setPin] = useState("");
   const [errs, setErrs] = useState<Record<string, string>>({});
 
   /* init from URL */
@@ -78,9 +88,14 @@ export default function BookingWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const unitPrice = kind === "seva" ? seva?.price ?? 0 : amount;
+  const isPrasadam = kind === "seva" && seva?.category === "prasadam";
+  const fullAddr = isPrasadam
+    ? [addr.trim(), addr2.trim(), village.trim(), district.trim(), stateName.trim(), pin.trim()].filter(Boolean).join(", ")
+    : "";
   const total = kind === "seva"
-    ? (seva?.category === "darshan" ? (seva?.price ?? 0) * persons : seva?.price ?? 0)
+    ? (isPrasadam
+      ? (seva?.price ?? 0) * packs + PRASADAM_POSTAGE
+      : seva?.category === "darshan" ? (seva?.price ?? 0) * persons : seva?.price ?? 0)
     : amount;
 
   const save = (b: Booking) => {
@@ -93,10 +108,18 @@ export default function BookingWizard() {
 
   const validateDetails = () => {
     const e: Record<string, string> = {};
-    if (kind === "seva" && !date) e.date = "Choose a date for the seva";
-    if (kind === "seva" && date && date < todayStr()) e.date = "Date cannot be in the past";
-    if (!devotee.trim()) e.devotee = "Devotee name is required";
-    if (!gotram) e.gotram = "Select a gotram (choose 'Other' if unsure)";
+    if (isPrasadam) {
+      if (!addr.trim()) e.addr = "Delivery address is required";
+      if (!village.trim()) e.village = "Village / town is required";
+      if (!district.trim()) e.district = "District is required";
+      if (!stateName.trim()) e.stateName = "State is required";
+      if (!/^\d{6}$/.test(pin)) e.pin = "Enter a valid 6-digit PIN code";
+    } else {
+      if (kind === "seva" && !date) e.date = "Choose a date for the seva";
+      if (kind === "seva" && date && date < todayStr()) e.date = "Date cannot be in the past";
+      if (!gotram) e.gotram = "Select a gotram (choose 'Other' if unsure)";
+    }
+    if (!devotee.trim()) e.devotee = isPrasadam ? "Recipient name is required" : "Devotee name is required";
     if (!phone.match(/^[6-9]\d{9}$/)) e.phone = "Enter a valid 10-digit mobile number";
     if (email && !/^\S+@\S+\.\S+$/.test(email)) e.email = "Enter a valid email";
     if (kind === "donation" && amount < 51) e.amount = "Minimum donation is ₹51";
@@ -112,13 +135,14 @@ export default function BookingWizard() {
         kind,
         itemName: kind === "seva" ? seva!.name : cause!.name,
         itemNameTe: kind === "seva" ? seva!.nameTe : cause!.nameTe,
-        date: kind === "seva" ? date : todayStr(),
-        slot: kind === "seva" ? slot : "—",
-        persons,
+        date: kind === "seva" ? (isPrasadam ? "Dispatch in 3–5 days" : date) : todayStr(),
+        slot: kind === "seva" ? (isPrasadam ? "By post" : slot) : "—",
+        persons: isPrasadam ? packs : persons,
         devotee: devotee.trim(),
         gotram, nakshatra, rasi, phone,
         email,
         amount: total,
+        ...(isPrasadam ? { packs, postage: PRASADAM_POSTAGE, address: fullAddr } : {}),
         payMethod: total === 0 ? "Free" : `${payMethod} (demo)`,
         createdAt: new Date().toLocaleString("en-IN"),
       };
@@ -230,7 +254,7 @@ export default function BookingWizard() {
             {step === 1 && (
               <>
                 <div className="form-grid">
-                  {kind === "seva" && (
+                  {kind === "seva" && !isPrasadam && (
                     <>
                       <div className="field">
                         <label>Seva date <span className="req">*</span></label>
@@ -256,33 +280,79 @@ export default function BookingWizard() {
                     </>
                   )}
 
+                  {isPrasadam && (
+                    <>
+                      <div className="field">
+                        <label>Number of packs</label>
+                        <div className="qty">
+                          <button type="button" onClick={() => setPacks((p) => Math.max(1, p - 1))} aria-label="decrease">−</button>
+                          <b>{packs}</b>
+                          <button type="button" onClick={() => setPacks((p) => Math.min(20, p + 1))} aria-label="increase">+</button>
+                        </div>
+                      </div>
+                      <div className="field" style={{ gridColumn: "1 / -1" }}>
+                        <label>Delivery address (house / street) <span className="req">*</span></label>
+                        <input value={addr} className={errs.addr ? "invalid" : ""} onChange={(e) => setAddr(e.target.value)} placeholder="Door no., street, area" />
+                        {errs.addr && <span className="err">{errs.addr}</span>}
+                      </div>
+                      <div className="field">
+                        <label>Landmark</label>
+                        <input value={addr2} onChange={(e) => setAddr2(e.target.value)} placeholder="optional" />
+                      </div>
+                      <div className="field">
+                        <label>Village / Town <span className="req">*</span></label>
+                        <input value={village} className={errs.village ? "invalid" : ""} onChange={(e) => setVillage(e.target.value)} />
+                        {errs.village && <span className="err">{errs.village}</span>}
+                      </div>
+                      <div className="field">
+                        <label>District <span className="req">*</span></label>
+                        <input value={district} className={errs.district ? "invalid" : ""} onChange={(e) => setDistrict(e.target.value)} />
+                        {errs.district && <span className="err">{errs.district}</span>}
+                      </div>
+                      <div className="field">
+                        <label>State <span className="req">*</span></label>
+                        <input value={stateName} className={errs.stateName ? "invalid" : ""} onChange={(e) => setStateName(e.target.value)} />
+                        {errs.stateName && <span className="err">{errs.stateName}</span>}
+                      </div>
+                      <div className="field">
+                        <label>PIN code <span className="req">*</span></label>
+                        <input inputMode="numeric" maxLength={6} value={pin} className={errs.pin ? "invalid" : ""} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="6-digit PIN" />
+                        {errs.pin && <span className="err">{errs.pin}</span>}
+                      </div>
+                    </>
+                  )}
+
                   <div className="field">
-                    <label>Devotee name (for sankalpam) <span className="req">*</span></label>
+                    <label>{isPrasadam ? "Recipient name" : "Devotee name (for sankalpam)"} <span className="req">*</span></label>
                     <input value={devotee} className={errs.devotee ? "invalid" : ""} onChange={(e) => setDevotee(e.target.value)} placeholder="e.g. Venkata Ramana Sharma" />
                     {errs.devotee && <span className="err">{errs.devotee}</span>}
                   </div>
-                  <div className="field">
-                    <label>Gotram <span className="req">*</span></label>
-                    <select value={gotram} className={errs.gotram ? "invalid" : ""} onChange={(e) => setGotram(e.target.value)}>
-                      <option value="">Select gotram</option>
-                      {GOTRAS.map((g) => <option key={g}>{g}</option>)}
-                    </select>
-                    {errs.gotram && <span className="err">{errs.gotram}</span>}
-                  </div>
-                  <div className="field">
-                    <label>Nakshatram</label>
-                    <select value={nakshatra} onChange={(e) => setNakshatra(e.target.value)}>
-                      <option value="">Select nakshatram (optional)</option>
-                      {NAKSHATRAS.map((n) => <option key={n}>{n}</option>)}
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Rasi</label>
-                    <select value={rasi} onChange={(e) => setRasi(e.target.value)}>
-                      <option value="">Select rasi (optional)</option>
-                      {RASIS.map((r) => <option key={r}>{r}</option>)}
-                    </select>
-                  </div>
+                  {!isPrasadam && (
+                    <>
+                      <div className="field">
+                        <label>Gotram <span className="req">*</span></label>
+                        <select value={gotram} className={errs.gotram ? "invalid" : ""} onChange={(e) => setGotram(e.target.value)}>
+                          <option value="">Select gotram</option>
+                          {GOTRAS.map((g) => <option key={g}>{g}</option>)}
+                        </select>
+                        {errs.gotram && <span className="err">{errs.gotram}</span>}
+                      </div>
+                      <div className="field">
+                        <label>Nakshatram</label>
+                        <select value={nakshatra} onChange={(e) => setNakshatra(e.target.value)}>
+                          <option value="">Select nakshatram (optional)</option>
+                          {NAKSHATRAS.map((n) => <option key={n}>{n}</option>)}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>Rasi</label>
+                        <select value={rasi} onChange={(e) => setRasi(e.target.value)}>
+                          <option value="">Select rasi (optional)</option>
+                          {RASIS.map((r) => <option key={r}>{r}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
                   <div className="field">
                     <label>Mobile number <span className="req">*</span></label>
                     <input inputMode="numeric" maxLength={10} value={phone} className={errs.phone ? "invalid" : ""} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="10-digit mobile" />
@@ -296,7 +366,9 @@ export default function BookingWizard() {
                 </div>
 
                 <div className="notice mt-2">
-                  <div><b>Sankalpam:</b> the seva will be performed in the name and gotram given above. Please double-check spelling.</div>
+                  {isPrasadam
+                    ? <div><b>Postal prasadam:</b> Ammavari prasadam is freshly prepared, packed and sent by post to the address above — typically delivered within 3–5 working days. Packing & postage of {inr(PRASADAM_POSTAGE)} is added at checkout.</div>
+                    : <div><b>Sankalpam:</b> the seva will be performed in the name and gotram given above. Please double-check spelling.</div>}
                 </div>
 
                 <div className="wizard__nav">
@@ -311,11 +383,14 @@ export default function BookingWizard() {
                 <div className="review">
                   <table>
                     <tbody>
-                      <tr><td>{kind === "seva" ? "Seva" : "Donation"}</td><td>{kind === "seva" ? seva!.name : cause!.name} <span className="telugu" style={{ fontWeight: 400, color: "var(--ink-soft)" }}>({kind === "seva" ? seva!.nameTe : cause!.nameTe})</span></td></tr>
-                      {kind === "seva" && <tr><td>Date & slot</td><td>{date || "—"} · {slot}</td></tr>}
-                      <tr><td>Devotee (sankalpam)</td><td>{devotee}{gotram ? ` · ${gotram} gotram` : ""}{nakshatra ? ` · ${nakshatra}` : ""}</td></tr>
-                      {kind === "seva" && <tr><td>Persons</td><td>{persons}</td></tr>}
+                      <tr><td>{kind === "seva" ? (isPrasadam ? "Prasadam" : "Seva") : "Donation"}</td><td>{kind === "seva" ? seva!.name : cause!.name} <span className="telugu" style={{ fontWeight: 400, color: "var(--ink-soft)" }}>({kind === "seva" ? seva!.nameTe : cause!.nameTe})</span></td></tr>
+                      {kind === "seva" && !isPrasadam && <tr><td>Date & slot</td><td>{date || "—"} · {slot}</td></tr>}
+                      {isPrasadam && <tr><td>Packs</td><td>{packs} × {inr(seva!.price)}</td></tr>}
+                      <tr><td>{isPrasadam ? "Recipient" : "Devotee (sankalpam)"}</td><td>{devotee}{gotram ? ` · ${gotram} gotram` : ""}{nakshatra ? ` · ${nakshatra}` : ""}</td></tr>
+                      {kind === "seva" && !isPrasadam && <tr><td>Persons</td><td>{persons}</td></tr>}
+                      {isPrasadam && <tr><td>Deliver to</td><td>{fullAddr}</td></tr>}
                       <tr><td>Contact</td><td>{phone}{email ? ` · ${email}` : ""}</td></tr>
+                      {isPrasadam && <tr><td>Packing & postage</td><td>{inr(PRASADAM_POSTAGE)}</td></tr>}
                       <tr className="total"><td>Total payable</td><td>{total === 0 ? "Free" : inr(total)}</td></tr>
                     </tbody>
                   </table>
@@ -385,9 +460,12 @@ function TicketView({ b, onNew }: { b: Booking; onNew?: () => void }) {
             <tbody>
               <tr><td>Booking ID</td><td><span className="booking-id">{b.id}</span></td></tr>
               <tr><td>{b.kind === "seva" ? "Seva" : "Towards"}</td><td>{b.itemName}</td></tr>
-              {b.kind === "seva" && <tr><td>Date · Slot</td><td>{b.date} · {b.slot}</td></tr>}
-              <tr><td>Devotee</td><td>{b.devotee}{b.gotram ? ` · ${b.gotram}` : ""}</td></tr>
-              {b.kind === "seva" && <tr><td>Persons</td><td>{b.persons}</td></tr>}
+              {b.kind === "seva" && !b.address && <tr><td>Date · Slot</td><td>{b.date} · {b.slot}</td></tr>}
+              {b.packs && <tr><td>Packs</td><td>{b.packs}</td></tr>}
+              <tr><td>{b.address ? "Recipient" : "Devotee"}</td><td>{b.devotee}{b.gotram ? ` · ${b.gotram}` : ""}</td></tr>
+              {b.kind === "seva" && !b.address && <tr><td>Persons</td><td>{b.persons}</td></tr>}
+              {b.address && <tr><td>Deliver to</td><td>{b.address}</td></tr>}
+              {b.postage != null && <tr><td>Packing & postage</td><td>{inr(b.postage)}</td></tr>}
               <tr><td>Amount</td><td>{b.amount === 0 ? "Free" : inr(b.amount)}</td></tr>
               <tr><td>Payment</td><td>{b.payMethod}</td></tr>
               <tr><td>Booked on</td><td>{b.createdAt}</td></tr>
@@ -398,7 +476,7 @@ function TicketView({ b, onNew }: { b: Booking; onNew?: () => void }) {
         <div className="ticket__foot">
           <Barcode id={b.id} />
           <div className="booking-id">{b.id}</div>
-          <small className="muted">Show this ticket at the devastanam counter · శ్రీ బగళాముఖ్యై నమః</small>
+          <small className="muted">{b.address ? "Prasadam will be dispatched by post within 3–5 working days" : "Show this ticket at the devastanam counter"} · శ్రీ బగళాముఖ్యై నమః</small>
         </div>
       </div>
       <div className="flex center-x mt-3 wrap">

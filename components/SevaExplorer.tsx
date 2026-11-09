@@ -11,6 +11,7 @@ const FILTERS = [
   { key: "nitya", label: "Nitya Sevas" },
   { key: "homam", label: "Homams" },
   { key: "special", label: "Special Sevas" },
+  { key: "prasadam", label: "Postal Prasadam" },
 ] as const;
 
 const TAG: Record<Seva["category"], string> = {
@@ -18,6 +19,7 @@ const TAG: Record<Seva["category"], string> = {
   nitya: "Nitya Seva",
   homam: "Homam",
   special: "Special",
+  prasadam: "By Post",
 };
 
 export default function SevaExplorer() {
@@ -55,7 +57,7 @@ export default function SevaExplorer() {
               <div className="seva-card__foot">
                 <span className="price">
                   {s.price === 0 ? "Free" : `₹${s.price.toLocaleString("en-IN")}`}
-                  <small>{s.category === "darshan" ? "per person" : "per seva"}</small>
+                  <small>{s.category === "darshan" ? "per person" : s.category === "prasadam" ? "per pack" : "per seva"}</small>
                 </span>
                 <Link href={`/booking?seva=${s.id}`} className="btn btn--sm">
                   {s.price === 0 ? "Get Ticket" : "Book"}
